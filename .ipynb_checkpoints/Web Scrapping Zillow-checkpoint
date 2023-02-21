@@ -1,0 +1,752 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "27f49200-fc32-4ef5-8426-9b2c098177fa",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#https://medium.com/@ben.sturm/scraping-house-listing-data-using-selenium-and-beautiful-soup-1cbb94ba9492\n",
+    "\n",
+    "#https://medium.com/@ben.sturm/scraping-house-listing-data-using-selenium-and-beautiful-soup-1cbb94ba9492"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "b00eb497-eba9-445d-b82c-b91074dc2999",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#!pip install requests"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "b59c3746-34fb-4f6a-b9af-9fb760e6fa68",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import requests\n",
+    "import json\n",
+    "import os\n",
+    "import sys\n",
+    "import numpy as np\n",
+    "import pandas as pd\n",
+    "import regex as re\n",
+    "from bs4 import BeautifulSoup\n",
+    "from selenium import webdriver\n",
+    "from selenium.webdriver.common.keys import Keys\n",
+    "from selenium.webdriver.common.by import By\n",
+    "from selenium import webdriver\n",
+    "from selenium.webdriver.chrome.service import Service\n",
+    "from webdriver_manager.chrome import ChromeDriverManager"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "id": "e2eff7d1-ea6d-4fe6-82cf-f6fc3bf52f7e",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "zillow_url = 'https://www.zillow.com/homes/Redding,-CA_rb/'"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "id": "6765a7e8-0595-4f61-b186-4fa16fe2f64f",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "chromedriver path: C:\\Users\\atamakloe002/Downloads/chromedriver\n"
+     ]
+    }
+   ],
+   "source": [
+    "chromedriver = \"~/Downloads/chromedriver\" # path to the chromedriver executable\n",
+    "chromedriver = os.path.expanduser(chromedriver)\n",
+    "print('chromedriver path: {}'.format(chromedriver))\n",
+    "sys.path.append(chromedriver)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "ae924141-a038-4d45-9ef2-4f4fd6465566",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))\n",
+    "driver.get(zillow_url)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "5e9af9e3-6e55-412a-a0f6-ed24f7d7ac06",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "200"
+      ]
+     },
+     "execution_count": 6,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "response = requests.get(zillow_url)\n",
+    "response.status_code"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "id": "5bbc04ed-07d4-40e7-b2a6-b220df909be4",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "soup = BeautifulSoup(driver.page_source, 'html.parser')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "id": "ff67a39a-dc3f-4b07-baf1-f4e372097e31",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "<title>Redding CA Real Estate - Redding CA Homes For Sale | Zillow</title>\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(soup.title)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "id": "bb88740d-2198-4ea2-8cab-84c25cb3cc24",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "listings = soup.find_all('li', class_= \"ListItem-c11n-8-84-2__sc-10e22w8-0 srp__sc-wtsrtn-0 jhnswL with_constellation\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "id": "a44feefd-0771-4c54-94a1-b8307d52c406",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "39\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(len(listings))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "id": "dce57864-232b-4694-8847-bab5f0f2a536",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "<li class=\"ListItem-c11n-8-84-2__sc-10e22w8-0 srp__sc-wtsrtn-0 jhnswL with_constellation\"><script type=\"application/ld+json\">{\"@type\":\"SingleFamilyResidence\",\"@context\":\"http://schema.org\",\"name\":\"2976 Austin Path, Redding, CA 96002\",\"floorSize\":{\"@type\":\"QuantitativeValue\",\"@context\":\"http://schema.org\",\"value\":\"1,572\"},\"address\":{\"@type\":\"PostalAddress\",\"@context\":\"http://schema.org\",\"streetAddress\":\"2976 Austin Path\",\"addressLocality\":\"Redding\",\"addressRegion\":\"CA\",\"postalCode\":\"96002\"},\"geo\":{\"@type\":\"GeoCoordinates\",\"@context\":\"http://schema.org\",\"latitude\":40.562687,\"longitude\":-122.31699},\"url\":\"https://www.zillow.com/homedetails/2976-Austin-Path-Redding-CA-96002/79849414_zpid/\"}</script><article class=\"StyledPropertyCard-c11n-8-84-2__sc-jvwq6q-0 gNEVmr srp__sc-1o67r90-0 cSxaok property-card list-card_not-saved\" data-test=\"property-card\" id=\"zpid_79849414\" role=\"presentation\"><div class=\"StyledCard-c11n-8-84-2__sc-rmiu6p-0 hJzHQl StyledPropertyCardBody-c11n-8-84-2__sc-1p5uux3-0 fPAjwT\"><div class=\"StyledPropertyCardDataWrapper-c11n-8-84-2__sc-1omp4c3-0 jIcpOJ property-card-data\"><a class=\"StyledPropertyCardDataArea-c11n-8-84-2__sc-yipmu-0 cTLZKy property-card-link\" data-test=\"property-card-link\" href=\"https://www.zillow.com/homedetails/2976-Austin-Path-Redding-CA-96002/79849414_zpid/\" tabindex=\"0\"><address data-test=\"property-card-addr\">2976 Austin Path, Redding, CA 96002</address></a><div class=\"StyledPropertyCardDataArea-c11n-8-84-2__sc-yipmu-0 kXmOoN\"></div><div class=\"StyledPropertyCardDataArea-c11n-8-84-2__sc-yipmu-0 gugdBn\"><span data-test=\"property-card-price\">$350,000</span></div><div class=\"StyledPropertyCardDataArea-c11n-8-84-2__sc-yipmu-0 jjfKMJ\"><ul class=\"StyledPropertyCardHomeDetailsList-c11n-8-84-2__sc-1xvdaej-0 hgBYgm\"><li><b>3</b> <abbr>bds</abbr></li><li><b>3</b> <abbr>ba</abbr></li><li><b>1,572</b> <abbr>sqft</abbr></li></ul> <!-- -->- House for sale</div></div><div class=\"StyledPropertyCardPhotoWrapper-c11n-8-84-2__sc-204bo4-0 hdBivS\"><div class=\"StyledPropertyCardPhotoHeader-c11n-8-84-2__sc-10m3z6y-0 fWKIue\"><div class=\"StyledPropertyCardBadgeArea-c11n-8-84-2__sc-wncxdw-0 fBMrHQ\"><span class=\"StyledPropertyCardBadge-c11n-8-84-2__sc-6gojrl-0 ckNYJQ\">4 hours ago</span></div></div><div class=\"StyledPropertyCardPhotoBody-c11n-8-84-2__sc-128t811-0 hFoLHH\"><a aria-hidden=\"false\" class=\"property-card-link\" data-test=\"property-card-link\" href=\"https://www.zillow.com/homedetails/2976-Austin-Path-Redding-CA-96002/79849414_zpid/\" tabindex=\"-1\"><div class=\"StyledPropertyCardPhoto-c11n-8-84-2__sc-ormo34-0 ibuYCh srp__sc-1gxvsd7-0 gJxiTi\"><img alt=\"2976 Austin Path, Redding, CA 96002\" aria-hidden=\"false\" class=\"Image-c11n-8-84-2__sc-1rtmhsc-0 clrWLx\" draggable=\"auto\" src=\"https://photos.zillowstatic.com/fp/369eb48eb534bc0431a54e367c592b9d-p_e.jpg\"/></div></a></div></div><button aria-disabled=\"false\" aria-label=\"Save\" class=\"StyledButton-c11n-8-84-2__sc-wpcbcc-0 kjNLnq StyledPropertyCardSaveButton-c11n-8-84-2__sc-dquvr7-0 bgMgTl srp__sc-18odgo2-0 kvZRCE property-card-save\" data-test=\"property-card-save\" type=\"button\"><span class=\"StyledButtonIcon-c11n-8-84-2__sc-wpcbcc-1 dxSEoU\"><svg viewbox=\"0 0 24 22\"><title>Save this home</title><path class=\"HeartIcon__fill\" d=\"M17.3996 6.17511e-05C15.5119 0.00908657 13.7078 0.779206 12.3955 2.13608L11.9995 2.54408L11.6035 2.13608C10.2912 0.779206 8.48708 0.00908657 6.59946 6.17511e-05C5.15317 -0.00630912 3.7479 0.480456 2.61543 1.38007C1.08163 2.60976 0.137114 4.42893 0.0137749 6.39093C-0.109564 8.35294 0.5997 10.2761 1.96743 11.6882L2.51943 12.2522L11.3995 21.3482C11.5575 21.5095 11.7738 21.6004 11.9995 21.6004C12.2253 21.6004 12.4415 21.5095 12.5995 21.3482L21.4796 12.2522L22.0316 11.6882C23.3993 10.2761 24.1086 8.35294 23.9852 6.39093C23.8619 4.42893 22.9174 2.60976 21.3836 1.38007C20.2511 0.480456 18.8458 -0.00630912 17.3996 6.17511e-05Z\"></path><path class=\"HeartIcon__outline\" d=\"M12.3955 2.13608C13.7078 0.779206 15.5119 0.00908657 17.3996 6.17511e-05C18.8458 -0.00630912 20.2511 0.480456 21.3836 1.38007C22.9174 2.60976 23.8619 4.42893 23.9852 6.39093C24.1086 8.35294 23.3993 10.2761 22.0316 11.6882L21.4796 12.2522L12.5995 21.3482C12.4415 21.5095 12.2253 21.6004 11.9995 21.6004C11.7738 21.6004 11.5575 21.5095 11.3995 21.3482L2.51943 12.2522L1.96743 11.6882C0.5997 10.2761 -0.109564 8.35294 0.0137748 6.39093C0.137114 4.42893 1.08163 2.60976 2.61543 1.38007C3.7479 0.480456 5.15317 -0.00630912 6.59946 6.17511e-05C8.48708 0.00908657 10.2912 0.779206 11.6035 2.13608L11.9995 2.54408L12.3955 2.13608ZM19.8956 3.25208C19.1854 2.69122 18.3045 2.39053 17.3996 2.40008C16.1576 2.41525 14.9717 2.91978 14.0995 3.80409L13.7155 4.21209L12.4315 5.5321C12.1927 5.77011 11.8063 5.77011 11.5675 5.5321L10.2835 4.21209L9.8995 3.80409C9.0273 2.91978 7.84145 2.41525 6.59947 2.40008C5.69165 2.39734 4.81045 2.70661 4.10345 3.27608C3.09352 4.06928 2.47292 5.25804 2.39944 6.54011C2.31914 7.81608 2.78104 9.06669 3.67145 9.98414L4.22345 10.5601L11.9995 18.5162L19.8476 10.5601L20.3996 9.98414C21.2638 9.05458 21.6991 7.80545 21.5996 6.54011C21.5329 5.2495 20.9116 4.05071 19.8956 3.25208Z\"></path></svg></span></button></div></article></li>"
+      ]
+     },
+     "execution_count": 11,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "listings[1]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 13,
+   "id": "51202898-eaf0-4c01-b4b3-8532a6484c69",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "addy1 = listings[24].find(text=re.compile('\"streetAddress\":\"'))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 14,
+   "id": "32528b26-fb39-4744-9460-f0d78c702f02",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "{\"@type\":\"SingleFamilyResidence\",\"@context\":\"http://schema.org\",\"name\":\"847 Santa Cruz Dr, Redding, CA 96003\",\"floorSize\":{\"@type\":\"QuantitativeValue\",\"@context\":\"http://schema.org\",\"value\":\"2,865\"},\"address\":{\"@type\":\"PostalAddress\",\"@context\":\"http://schema.org\",\"streetAddress\":\"847 Santa Cruz Dr\",\"addressLocality\":\"Redding\",\"addressRegion\":\"CA\",\"postalCode\":\"96003\"},\"geo\":{\"@type\":\"GeoCoordinates\",\"@context\":\"http://schema.org\",\"latitude\":40.6013,\"longitude\":-122.42593},\"url\":\"https://www.zillow.com/homedetails/847-Santa-Cruz-Dr-Redding-CA-96003/54979849_zpid/\"}\n",
+      "571\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(addy1)\n",
+    "print(len(addy1))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 15,
+   "id": "49afea1e-ab1e-4aef-8d49-004cf077c6f4",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "addy2 = addy1[64:110]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 16,
+   "id": "abf3c295-51a3-4a2b-864b-1e61539446ca",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "'\"name\":\"847 Santa Cruz Dr, Redding, CA 96003\",'"
+      ]
+     },
+     "execution_count": 16,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "addy2"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 17,
+   "id": "ba0bf499-d9d1-4e0d-80c8-4575a71076f4",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "table = pd.DataFrame(columns = ['address'])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 18,
+   "id": "c67c8721-5268-44c7-be5e-5bb5e7e594dd",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "1824 Grace Ave, Redding, CA 96001\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n",
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n",
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n",
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n",
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n",
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n",
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n",
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "2976 Austin Path, Redding, CA 96002\n",
+      "13835 Green Mountain Trl, Redding, CA 96003\n",
+      "4401 E Bonnyview Rd, Redding, CA 96001\n",
+      "5122 Monaco, Redding, CA 96002\n",
+      "1906 Bechelli Ln, Redding, CA 96002\n",
+      "15204 Walker Ter, Shasta, CA 96087\n",
+      "1581 Lavender Way, Redding, CA 96003\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n",
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n",
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n",
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n",
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n",
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n",
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "853 Oakmont Dr, Redding, CA 96003\n",
+      "2020 Benton Dr, Redding, CA 96003\n",
+      "1854 South St, Redding, CA 96001\n",
+      "1864 South St, Redding, CA 96001\n",
+      "6563 Paso Dr, Redding, CA 96001\n",
+      "358 Vintage Path, Redding, CA 96003\n",
+      "065-620-017, Redding, CA 96001\n",
+      "Manzanoaks Dr, Redding, CA 96003"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n",
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n",
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n",
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n",
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n",
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "\n",
+      "581 N Boulder Dr, Redding, CA 96003\n",
+      "4143 Saint Patricks Ave, Redding, CA 96003\n",
+      "1221 E Cypress Ave Unit 310, Redding, CA 96002\n",
+      "3316 West St, Redding, CA 96001\n",
+      "15526 Gamblers Gulch Rd, Redding, CA 96001\n",
+      "Homes Available Soon Plan, Monroe, Redding, CA 96003\n",
+      "14546 Clear Creek Knolls Dr, Redding, CA 96001\n",
+      "3662 Ginny Ct, Redding, CA 96002\n",
+      "847 Santa Cruz Dr, Redding, CA 96003\n",
+      "2486 Neighborly Way, Redding, CA 96001\n",
+      "2606 Seiad St, Redding, CA 96003\n",
+      "3082 Keswick Dam Rd, Redding, CA 96003\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n",
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n",
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n",
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n",
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n",
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n",
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n",
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "4211 White River Ct, Redding, CA 96003\n",
+      "4170 Meander Dr, Redding, CA 96001\n",
+      "2176 Placer St, Redding, CA 96001\n",
+      "14000 Sandisle Dr, Redding, CA 96003\n",
+      "5045 Huntington Dr, Redding, CA 96002\n",
+      "3135 Lakey Ln, Redding, CA 96003\n",
+      "1930 Jewell Ln, Redding, CA 96001\n",
+      "4720 Lower Springs Rd, Redding, CA 96001"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n",
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n",
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n",
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n",
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n",
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n",
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n",
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "\n",
+      "2831 Camulos Way, Redding, CA 96002\n",
+      "6908 Dennis Ct, Redding, CA 96001\n",
+      "2619 Wilson Ave, Redding, CA 96002\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n",
+      "C:\\Users\\atamakloe002\\AppData\\Local\\Temp\\ipykernel_25452\\3035500402.py:8: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.\n",
+      "  table = table.append({'address':addresses}, ignore_index=True)\n"
+     ]
+    }
+   ],
+   "source": [
+    "for listing in listings:\n",
+    "    text = listing.find(text=re.compile('\"streetAddress\":\"'))\n",
+    "    text2 = text[70:140]\n",
+    "    l = text2.split('\"')[1::2]\n",
+    "    addresses = l[0]\n",
+    "    print(addresses)\n",
+    "    \n",
+    "    table = table.append({'address':addresses}, ignore_index=True)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 19,
+   "id": "13251880-9e75-4eb4-9e70-e6ddb05d5d85",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>address</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>0</th>\n",
+       "      <td>1824 Grace Ave, Redding, CA 96001</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>1</th>\n",
+       "      <td>2976 Austin Path, Redding, CA 96002</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>2</th>\n",
+       "      <td>13835 Green Mountain Trl, Redding, CA 96003</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>3</th>\n",
+       "      <td>4401 E Bonnyview Rd, Redding, CA 96001</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>4</th>\n",
+       "      <td>5122 Monaco, Redding, CA 96002</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>5</th>\n",
+       "      <td>1906 Bechelli Ln, Redding, CA 96002</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>6</th>\n",
+       "      <td>15204 Walker Ter, Shasta, CA 96087</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>7</th>\n",
+       "      <td>1581 Lavender Way, Redding, CA 96003</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>8</th>\n",
+       "      <td>853 Oakmont Dr, Redding, CA 96003</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>9</th>\n",
+       "      <td>2020 Benton Dr, Redding, CA 96003</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>10</th>\n",
+       "      <td>1854 South St, Redding, CA 96001</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>11</th>\n",
+       "      <td>1864 South St, Redding, CA 96001</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>12</th>\n",
+       "      <td>6563 Paso Dr, Redding, CA 96001</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>13</th>\n",
+       "      <td>358 Vintage Path, Redding, CA 96003</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>14</th>\n",
+       "      <td>065-620-017, Redding, CA 96001</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>15</th>\n",
+       "      <td>Manzanoaks Dr, Redding, CA 96003</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>16</th>\n",
+       "      <td>581 N Boulder Dr, Redding, CA 96003</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>17</th>\n",
+       "      <td>4143 Saint Patricks Ave, Redding, CA 96003</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>18</th>\n",
+       "      <td>1221 E Cypress Ave Unit 310, Redding, CA 96002</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>19</th>\n",
+       "      <td>3316 West St, Redding, CA 96001</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>20</th>\n",
+       "      <td>15526 Gamblers Gulch Rd, Redding, CA 96001</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>21</th>\n",
+       "      <td>Homes Available Soon Plan, Monroe, Redding, CA...</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>22</th>\n",
+       "      <td>14546 Clear Creek Knolls Dr, Redding, CA 96001</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>23</th>\n",
+       "      <td>3662 Ginny Ct, Redding, CA 96002</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>24</th>\n",
+       "      <td>847 Santa Cruz Dr, Redding, CA 96003</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>25</th>\n",
+       "      <td>2486 Neighborly Way, Redding, CA 96001</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>26</th>\n",
+       "      <td>2606 Seiad St, Redding, CA 96003</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>27</th>\n",
+       "      <td>3082 Keswick Dam Rd, Redding, CA 96003</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>28</th>\n",
+       "      <td>4211 White River Ct, Redding, CA 96003</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>29</th>\n",
+       "      <td>4170 Meander Dr, Redding, CA 96001</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>30</th>\n",
+       "      <td>2176 Placer St, Redding, CA 96001</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>31</th>\n",
+       "      <td>14000 Sandisle Dr, Redding, CA 96003</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>32</th>\n",
+       "      <td>5045 Huntington Dr, Redding, CA 96002</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>33</th>\n",
+       "      <td>3135 Lakey Ln, Redding, CA 96003</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>34</th>\n",
+       "      <td>1930 Jewell Ln, Redding, CA 96001</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>35</th>\n",
+       "      <td>4720 Lower Springs Rd, Redding, CA 96001</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>36</th>\n",
+       "      <td>2831 Camulos Way, Redding, CA 96002</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>37</th>\n",
+       "      <td>6908 Dennis Ct, Redding, CA 96001</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>38</th>\n",
+       "      <td>2619 Wilson Ave, Redding, CA 96002</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "                                              address\n",
+       "0                   1824 Grace Ave, Redding, CA 96001\n",
+       "1                 2976 Austin Path, Redding, CA 96002\n",
+       "2         13835 Green Mountain Trl, Redding, CA 96003\n",
+       "3              4401 E Bonnyview Rd, Redding, CA 96001\n",
+       "4                      5122 Monaco, Redding, CA 96002\n",
+       "5                 1906 Bechelli Ln, Redding, CA 96002\n",
+       "6                  15204 Walker Ter, Shasta, CA 96087\n",
+       "7                1581 Lavender Way, Redding, CA 96003\n",
+       "8                   853 Oakmont Dr, Redding, CA 96003\n",
+       "9                   2020 Benton Dr, Redding, CA 96003\n",
+       "10                   1854 South St, Redding, CA 96001\n",
+       "11                   1864 South St, Redding, CA 96001\n",
+       "12                    6563 Paso Dr, Redding, CA 96001\n",
+       "13                358 Vintage Path, Redding, CA 96003\n",
+       "14                     065-620-017, Redding, CA 96001\n",
+       "15                   Manzanoaks Dr, Redding, CA 96003\n",
+       "16                581 N Boulder Dr, Redding, CA 96003\n",
+       "17         4143 Saint Patricks Ave, Redding, CA 96003\n",
+       "18     1221 E Cypress Ave Unit 310, Redding, CA 96002\n",
+       "19                    3316 West St, Redding, CA 96001\n",
+       "20         15526 Gamblers Gulch Rd, Redding, CA 96001\n",
+       "21  Homes Available Soon Plan, Monroe, Redding, CA...\n",
+       "22     14546 Clear Creek Knolls Dr, Redding, CA 96001\n",
+       "23                   3662 Ginny Ct, Redding, CA 96002\n",
+       "24               847 Santa Cruz Dr, Redding, CA 96003\n",
+       "25             2486 Neighborly Way, Redding, CA 96001\n",
+       "26                   2606 Seiad St, Redding, CA 96003\n",
+       "27             3082 Keswick Dam Rd, Redding, CA 96003\n",
+       "28             4211 White River Ct, Redding, CA 96003\n",
+       "29                 4170 Meander Dr, Redding, CA 96001\n",
+       "30                  2176 Placer St, Redding, CA 96001\n",
+       "31               14000 Sandisle Dr, Redding, CA 96003\n",
+       "32              5045 Huntington Dr, Redding, CA 96002\n",
+       "33                   3135 Lakey Ln, Redding, CA 96003\n",
+       "34                  1930 Jewell Ln, Redding, CA 96001\n",
+       "35           4720 Lower Springs Rd, Redding, CA 96001\n",
+       "36                2831 Camulos Way, Redding, CA 96002\n",
+       "37                  6908 Dennis Ct, Redding, CA 96001\n",
+       "38                 2619 Wilson Ave, Redding, CA 96002"
+      ]
+     },
+     "execution_count": 19,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "table"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 21,
+   "id": "78ad64ae-bc9b-4325-bdec-bf60ae340b5b",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "table.to_excel( 'table.xlsx')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "c69c3db7-fbb8-4d0a-91ad-0860a5e45500",
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3 (ipykernel)",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.9.12"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
